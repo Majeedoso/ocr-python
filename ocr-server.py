@@ -38,18 +38,20 @@ def ocr():
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
 
-    # Read the image
+    # Read and resize the image (resize to width 800 while maintaining aspect ratio)
     img = cv2.imread(file_path)
     if img is None:
         return jsonify({'error': 'Failed to read image. Please upload a valid image.'}), 400
 
-    # Initialize EasyOCR Reader (Lazy Loading)
+    img = cv2.resize(img, (800, int(800 * img.shape[0] / img.shape[1])))  # Resize image
+
+    # Initialize EasyOCR Reader
     try:
-        reader = easyocr.Reader(['ar', 'en'], gpu=False)
+        reader = easyocr.Reader(['ar', 'en'], gpu=False)  # Using CPU instead of GPU
     except Exception as e:
         return jsonify({'error': f'Failed to initialize OCR reader: {str(e)}'}), 500
 
-    # Perform OCR
+    # Perform OCR with EasyOCR
     try:
         text_results = reader.readtext(img)
     except Exception as e:
@@ -78,6 +80,7 @@ def ocr():
             if len(line) > 3 or line == "ذكر":  # Arabic-specific rule
                 lines_with_strings.append(line)
 
+    # Return OCR result as JSON
     return jsonify({
         'lines_with_numbers': lines_with_numbers,
         'lines_with_strings': lines_with_strings
